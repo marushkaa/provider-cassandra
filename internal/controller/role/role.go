@@ -229,7 +229,6 @@ func (c *external) Update(ctx context.Context, mg resource.Managed) (managed.Ext
 	}
 
 	params := cr.Spec.ForProvider
-
 	query := fmt.Sprintf("ALTER ROLE %s WITH SUPERUSER = %t AND LOGIN = %t",
 		cassandra.QuoteIdentifier(meta.GetExternalName(cr)),
 		params.Privileges.SuperUser != nil && *params.Privileges.SuperUser,
