@@ -29,6 +29,8 @@ import (
 type ProviderConfigSpec struct {
 	// Credentials required to authenticate to this provider.
 	Credentials ProviderCredentials `json:"credentials"`
+	// ConsistencyLevel defines the consistency level for Cassandra operations.
+	ConsistencyLevel *string `json:"consistencyLevel,omitempty"`
 }
 
 // ProviderCredentials required to authenticate.

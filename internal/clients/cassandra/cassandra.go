@@ -52,7 +52,7 @@ type CassandraDB struct {
 }
 
 // New initializes a new Cassandra client.
-func New(creds map[string][]byte, keyspace string) DB {
+func New(creds map[string][]byte, keyspace string, consistencyLevel string) DB {
 	endpoint := string(creds[xpv1.ResourceCredentialsSecretEndpointKey])
 	port := string(creds[xpv1.ResourceCredentialsSecretPortKey])
 
@@ -73,13 +73,38 @@ func New(creds map[string][]byte, keyspace string) DB {
 		cluster.Keyspace = keyspace
 	}
 
-	cluster.Consistency = gocql.All
+	cluster.Consistency = parseConsistencyLevel(consistencyLevel)
 	session, _ := cluster.CreateSession()
 
 	return CassandraDB{
 		session:  session,
 		endpoint: endpoint,
 		port:     port,
+	}
+}
+
+func parseConsistencyLevel(level string) gocql.Consistency {
+	switch strings.ToUpper(strings.TrimSpace(level)) {
+	case "ANY":
+		return gocql.Any
+	case "ONE":
+		return gocql.One
+	case "TWO":
+		return gocql.Two
+	case "THREE":
+		return gocql.Three
+	case "QUORUM":
+		return gocql.Quorum
+	case "ALL":
+		return gocql.All
+	case "LOCAL_QUORUM":
+		return gocql.LocalQuorum
+	case "EACH_QUORUM":
+		return gocql.EachQuorum
+	case "LOCAL_ONE":
+		return gocql.LocalOne
+	default:
+		return gocql.Quorum
 	}
 }
 

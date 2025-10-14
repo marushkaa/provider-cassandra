@@ -92,13 +92,22 @@ func TestObserve(t *testing.T) {
 				},
 			},
 			args: args{
-				mg: &v1alpha1.Role{},
+				mg: &v1alpha1.Role{
+					Spec: v1alpha1.RoleSpec{
+						ForProvider: v1alpha1.RoleParameters{
+							Privileges: v1alpha1.RolePrivilege{
+								SuperUser: boolPtr(true),
+								Login:     boolPtr(true),
+							},
+						},
+					},
+				},
 			},
 			want: want{
 				o: managed.ExternalObservation{
 					ResourceExists:          true,
 					ResourceUpToDate:        true,
-					ResourceLateInitialized: true,
+					ResourceLateInitialized: false,
 				},
 			},
 		},
@@ -427,3 +436,8 @@ func TestDelete(t *testing.T) {
 }
 
 // Add similar test suites for `Update` and `Delete` following the above format.
+
+// boolPtr returns a pointer to the given bool value
+func boolPtr(b bool) *bool {
+	return &b
+}

@@ -36,7 +36,7 @@ func TestConnect(t *testing.T) {
 	type fields struct {
 		kube      resource.ClientApplicator
 		usage     resource.Tracker
-		newClient func(creds map[string][]byte, keyspace string) cassandra.DB
+		newClient func(creds map[string][]byte, keyspace string, consistencyLevel string) cassandra.DB
 	}
 
 	type args struct {

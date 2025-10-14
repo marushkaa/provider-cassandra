@@ -88,7 +88,7 @@ func Setup(mgr ctrl.Manager, o controller.Options) error {
 type connector struct {
 	kube      client.Client
 	usage     resource.Tracker
-	newClient func(creds map[string][]byte, keyspace string) cassandra.DB
+	newClient func(creds map[string][]byte, keyspace string, consistencyLevel string) cassandra.DB
 }
 
 func (c *connector) Connect(ctx context.Context, mg resource.Managed) (managed.ExternalClient, error) {
@@ -125,7 +125,12 @@ func (c *connector) Connect(ctx context.Context, mg resource.Managed) (managed.E
 		creds[k] = []byte(v)
 	}
 
-	db := c.newClient(creds, "")
+	consistencyLevel := ""
+	if pc.Spec.ConsistencyLevel != nil {
+		consistencyLevel = *pc.Spec.ConsistencyLevel
+	}
+
+	db := c.newClient(creds, "", consistencyLevel)
 
 	return &external{db: db}, nil
 }
