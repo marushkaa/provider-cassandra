@@ -151,11 +151,9 @@ func (c *external) Observe(ctx context.Context, mg resource.Managed) (observatio
 		return managed.ExternalObservation{}, errors.New(errNotRole)
 	}
 
-	roleName := meta.GetExternalName(cr)
-
 	query := "SELECT is_superuser, can_login FROM system_auth.roles WHERE role = ?"
 	var isSuperuser, canLogin bool
-	iter, err := c.db.Query(ctx, query, roleName)
+	iter, err := c.db.Query(ctx, query, meta.GetExternalName(cr))
 	if err != nil {
 		return managed.ExternalObservation{}, errors.Wrap(err, errSelectRole)
 	}
@@ -189,13 +187,10 @@ func (c *external) Observe(ctx context.Context, mg resource.Managed) (observatio
 
 	cr.SetConditions(xpv1.Available())
 
-	upToDate := upToDate(observed, &cr.Spec.ForProvider)
-	lateInit := lateInit(observed, &cr.Spec.ForProvider)
-
 	return managed.ExternalObservation{
 		ResourceExists:          true,
-		ResourceLateInitialized: lateInit,
-		ResourceUpToDate:        upToDate,
+		ResourceLateInitialized: lateInit(observed, &cr.Spec.ForProvider),
+		ResourceUpToDate:        upToDate(observed, &cr.Spec.ForProvider),
 	}, nil
 }
 
@@ -205,28 +200,22 @@ func (c *external) Create(ctx context.Context, mg resource.Managed) (managed.Ext
 		return managed.ExternalCreation{}, errors.New(errNotRole)
 	}
 
-	roleName := meta.GetExternalName(cr)
-
 	pw, err := generatePassword()
 	if err != nil {
 		return managed.ExternalCreation{}, err
 	}
-
 	params := cr.Spec.ForProvider
-	superUser := params.Privileges.SuperUser != nil && *params.Privileges.SuperUser
-	login := params.Privileges.Login != nil && *params.Privileges.Login
-
 	query := fmt.Sprintf("CREATE ROLE IF NOT EXISTS %s WITH SUPERUSER = %t AND LOGIN = %t AND PASSWORD = '%s'",
-		cassandra.QuoteIdentifier(roleName),
-		superUser,
-		login,
+		cassandra.QuoteIdentifier(meta.GetExternalName(cr)),
+		params.Privileges.SuperUser != nil && *params.Privileges.SuperUser,
+		params.Privileges.Login != nil && *params.Privileges.Login,
 		pw)
 
 	if err := c.db.Exec(ctx, query); err != nil {
 		return managed.ExternalCreation{}, errors.New(errCreateRole + ": " + err.Error())
 	}
 
-	connectionDetails := c.db.GetConnectionDetails(roleName, pw)
+	connectionDetails := c.db.GetConnectionDetails(meta.GetExternalName(cr), pw)
 
 	return managed.ExternalCreation{
 		ConnectionDetails: connectionDetails,
@@ -239,15 +228,12 @@ func (c *external) Update(ctx context.Context, mg resource.Managed) (managed.Ext
 		return managed.ExternalUpdate{}, errors.New(errNotRole)
 	}
 
-	roleName := meta.GetExternalName(cr)
 	params := cr.Spec.ForProvider
-	superUser := params.Privileges.SuperUser != nil && *params.Privileges.SuperUser
-	login := params.Privileges.Login != nil && *params.Privileges.Login
 
 	query := fmt.Sprintf("ALTER ROLE %s WITH SUPERUSER = %t AND LOGIN = %t",
-		cassandra.QuoteIdentifier(roleName),
-		superUser,
-		login)
+		cassandra.QuoteIdentifier(meta.GetExternalName(cr)),
+		params.Privileges.SuperUser != nil && *params.Privileges.SuperUser,
+		params.Privileges.Login != nil && *params.Privileges.Login)
 
 	if err := c.db.Exec(ctx, query); err != nil {
 		return managed.ExternalUpdate{}, errors.New(errUpdateRole + ": " + err.Error())
@@ -262,9 +248,7 @@ func (c *external) Delete(ctx context.Context, mg resource.Managed) error {
 		return errors.New(errNotRole)
 	}
 
-	roleName := meta.GetExternalName(cr)
-
-	query := fmt.Sprintf("DROP ROLE IF EXISTS %s", cassandra.QuoteIdentifier(roleName))
+	query := fmt.Sprintf("DROP ROLE IF EXISTS %s", cassandra.QuoteIdentifier(meta.GetExternalName(cr)))
 	if err := c.db.Exec(ctx, query); err != nil {
 		return errors.New(errDropRole + ": " + err.Error())
 	}
