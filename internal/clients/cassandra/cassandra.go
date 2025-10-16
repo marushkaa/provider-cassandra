@@ -104,7 +104,7 @@ func parseConsistencyLevel(level string) gocql.Consistency {
 	case "LOCAL_ONE":
 		return gocql.LocalOne
 	default:
-		return gocql.Quorum
+		return gocql.All
 	}
 }
 

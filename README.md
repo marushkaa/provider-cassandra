@@ -4,7 +4,7 @@
 that is meant to be used as a cassandra for implementing new Providers. It comes
 with the following features that are meant to be refactored:
 
-- A `ProviderConfig` type that only points to a credentials `Secret`.
+- A `ProviderConfig` type that points to a credentials `Secret` and supports configurable `consistencyLevel` (defaults to `ALL`).
 - A `MyType` resource type that serves as an example managed resource.
 - A managed resource controller that reconciles `MyType` objects and simply
   prints their configuration in its `Observe` method.
